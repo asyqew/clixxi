@@ -8,17 +8,18 @@
 int main(int argc, char* argv[]) {
     Clixxi::App app(APP_NAME, APP_DESC, APP_VERSION);
 
-    app.command("cmd1", "First command in this app.")
-        .option("opt1", "First option for this command")
-        .option("opt2", "Second option for this command")
-        .run([](const Clixxi::Context& context) {
-            std::cout << "opt1: " << context.get_option<std::string>("opt1") << "\n" << "opt2: " << context.get_option<bool>("opt2", true);
-    });
+    app.command("sum")
+        .option("a")
+        .option("b")
+        .run([](const Clixxi::Context& ctx) {
+            int a = ctx.get_option<int>("a");
+            int b = ctx.get_option<int>("b");
+            std::cout << "Result: " << a + b << std::endl;
+        });
 
-    try{
-    app.run(argc, argv);
-    }
-    catch(const Clixxi::Exception& e){
+    try {
+        app.run(argc, argv);
+    } catch (const Clixxi::Exception& e) {
         Clixxi::error << e.what() << std::endl;
         return 1;
     }

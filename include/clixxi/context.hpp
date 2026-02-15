@@ -1,19 +1,60 @@
+/**
+ * @file context.hpp
+ * @brief Provides argument parsing and typed option access for commands.
+ *
+ * The Context class represents parsed command-line arguments
+ * passed to a specific command. It extracts options from raw
+ * argument vectors and provides type-safe access to their values.
+ */
+
 #pragma once
 
 #include <clixxi/exception.hpp>
-#include <clixxi/option.hpp>
 #include <clixxi/logger.hpp>
+#include <clixxi/option.hpp>
 #include <map>
 #include <vector>
 
 namespace Clixxi {
 
+/**
+ * @class Context
+ * @brief Represents parsed command execution context.
+ *
+ * Context is responsible for:
+ * - parsing CLI arguments of the form `--key value`
+ * - storing options internally as string key-value pairs
+ * - providing typed access via `get_option<T>()`
+ *
+ * Supported value types:
+ * - bool
+ * - int
+ * - float
+ * - std::string
+ */
 class Context {
    private:
+    /**
+     * @brief Internal storage for parsed options.
+     *
+     * Keys are stored without leading dashes.
+     * Values are stored as raw strings.
+     */
     std::map<std::string, std::string> options_;
 
    public:
-    Context(const std::vector<std::string>& args) {
+    /**
+     * @brief Constructs a Context from raw command arguments.
+     *
+     * Expected option format:
+     *   --key value
+     *   --flag          (implicitly treated as true)
+     *
+     * Non-option arguments (not starting with "--") are ignored.
+     *
+     * @param args Vector of command arguments.
+     */
+    explicit Context(const std::vector<std::string>& args) {
         for (size_t i = 0; i < args.size(); ++i) {
             const std::string& arg = args.at(i);
 
@@ -34,6 +75,16 @@ class Context {
         }
     }
 
+    /**
+     * @brief Retrieves an option value converted to type T.
+     *
+     * @tparam T Desired return type.
+     * @param name Option name.
+     * @return Converted option value.
+     *
+     * @throws `MissingRequiredOptionException` - If option is not found and T is not bool.
+     * @throws `BadOptionTypeException` - If conversion fails.
+     */
     template <typename T>
     T get_option(const std::string& name) const {
         auto it = options_.find(name);
@@ -86,20 +137,35 @@ class Context {
         }
     }
 
+    /**
+     * @brief Retrieves an option with a default fallback value.
+     *
+     * If the option is missing, returns default_value.
+     * If type conversion fails, logs a warning and returns default_value.
+     *
+     * @tparam T Desired return type.
+     * @param name Option name.
+     * @param default_value Value to return if option is absent or invalid.
+     * @return Converted option value or default.
+     */
     template <typename T>
     T get_option(const std::string& name, const T& default_value) const {
-        try{
+        try {
             return get_option<T>(name);
-        }
-        catch (const MissingRequiredOptionException&) {
+        } catch (const MissingRequiredOptionException&) {
             return default_value;
-        }
-        catch (const BadOptionTypeException& e){
+        } catch (const BadOptionTypeException& e) {
             Clixxi::warning << e.what() << std::endl;
             return default_value;
         }
     }
 
+    /**
+     * @brief Checks whether an option exists.
+     *
+     * @param name Option name.
+     * @return true if option was provided, false otherwise.
+     */
     bool has_option(const std::string& name) const { return options_.find(name) != options_.end(); }
 };
 

@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.14)
 project(Clixxi
     VERSION 0.1.0
     DESCRIPTION "A header-only C++ framework for building CLI applications"
-    HOMEPAGE_URL "https://github.com/SSSSOV/Clixxi"
+    HOMEPAGE_URL "https://github.com/asyqew/clixxi"
     LANGUAGES CXX
 )
 
@@ -25,8 +25,32 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_library(clixxi INTERFACE)
+target_include_directories(clixxi
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_compile_features(clixxi INTERFACE cxx_std_17)
+
+include(GNUInstallDirs)
+install(
+    TARGETS clixxi
+    EXPORT clixxiTargets
+)
+install(
+    DIRECTORY include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
+    EXPORT clixxiTargets
+    FILE clixxiConfig.cmake
+    NAMESPACE clixxi::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/clixxi
+)
+
 # --- Examples ---
 # Build example applications to demonstrate how to use Clixxi
 
 add_executable(example_hello examples/01_hello.cpp)
-target_include_directories(example_hello PRIVATE include)
+target_link_libraries(example_hello PRIVATE clixxi)
