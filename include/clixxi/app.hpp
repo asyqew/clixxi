@@ -77,7 +77,7 @@ class App {
      * @param desc Optional command description.
      * @return Reference to the command instance.
      */
-    Command& command(const std::string& name, const std::string& desc = "no desc") {
+    Command& command(const std::string& name, const std::string& desc = "") {
         auto [it, isInserted] = commands_.emplace(name, Command(name, desc));
         return it->second;
     }
@@ -99,12 +99,12 @@ class App {
         std::vector<std::string> args = parse_args(argc, argv);
 
         if (args.empty() || args.at(0) == "help") {
-            std::cout << "help";
+            std::cout << get_help();
             return;
         }
 
         if (args.at(0) == "version") {
-            std::cout << version_;
+            std::cout << name_ << " version " << version_;
             return;
         }
 
@@ -114,6 +114,44 @@ class App {
             throw CommandNotFoundException(args.at(0));
 
         it->second.execute(Context(std::vector<std::string>(args.begin() + 1, args.end())));
+    }
+
+    /**
+     * @brief Returns application help information as a string.
+     *
+     * Constructs a detailed description of the application, including:
+     * - name and brief description (if provided);
+     * - usage template;
+     * - list of available commands with their descriptions;
+     * - hint on how to get help for a specific command;
+     * - developer information.
+     *
+     * @return std::string A string containing formatted help information for the application.
+     */
+    std::string get_help() const {
+        std::ostringstream oss;
+        oss << name_;
+
+        if (!desc_.empty())
+            oss << " - " << desc_ << "\n";
+        oss << "\n";
+
+        oss << "Usage: " << name_ << " <COMMAND> [OPTIONS]\n\n";
+        oss << "AVAILABLE COMMANDS:\n";
+
+        for (const auto& [name, command] : commands_) {
+            oss << "  " << std::left << std::setw(12) << name;
+            if (!command.get_description().empty()) {
+                oss << command.get_description();
+            } else {
+                oss << "no description";
+            }
+            oss << "\n";
+        }
+
+        oss << "\nSee '" << name_ << " <COMMAND> --help' to read about command.\n\n";
+        oss << "This application created by Clixxi (https://github.com/asyqew/clixxi).\n";
+        return oss.str();
     }
 };
 

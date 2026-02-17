@@ -8,8 +8,8 @@
 int main(int argc, char* argv[]) {
     Clixxi::App app(APP_NAME, APP_DESC, APP_VERSION);
 
-    app.command("sum")
-        .option("a")
+    app.command("sum", "Print sum between two values (a + b).")
+        .option("a", "First value.")
         .option("b")
         .run([](const Clixxi::Context& ctx) {
             int a = ctx.get_option<int>("a");

@@ -195,7 +195,7 @@ It intentionally avoids complex metaprogramming and heavy abstractions.
 
 ## Versioning
 
-Current version: **0.1.0**
+Current version: **0.2.0**
 
 Semantic Versioning is used:
 
@@ -206,18 +206,6 @@ MAJOR.MINOR.PATCH
 * Breaking changes → MAJOR
 * New features → MINOR
 * Fixes → PATCH
-
-
-## License
-
-Choose and add a license file (recommended: MIT or Apache 2.0).
-
-Example:
-
-```
-MIT License
-```
-
 
 ## Roadmap
 

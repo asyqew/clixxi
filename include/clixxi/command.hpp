@@ -12,6 +12,7 @@
 
 #include <clixxi/context.hpp>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 
 namespace Clixxi {
@@ -45,7 +46,7 @@ class Command {
      * @param name Command name.
      * @param desc Command description.
      */
-    Command(const std::string& name, const std::string& desc = "no desc") : name_(name), desc_(desc) {}
+    Command(const std::string& name, const std::string& desc = "") : name_(name), desc_(desc) {}
 
     /**
      * @brief Registers an option for the command.
@@ -54,7 +55,7 @@ class Command {
      * @param desc Option description.
      * @return Reference to the current Command instance (fluent API).
      */
-    Command& option(const std::string name, const std::string desc = "-") {
+    Command& option(const std::string name, const std::string desc = "") {
         options_.emplace(name, Option(name, desc));
         return *this;
     }
@@ -84,13 +85,49 @@ class Command {
      */
     void execute(const Context& context) const {
         if (context.has_option("help")) {
-            std::cout << name_ << "help" << std::endl;
+            std::cout << get_help() << std::endl;
             return;
         }
         if (!handler_) {
             throw CommandHasNotHandlerException(name_);
         }
         handler_(context);
+    }
+
+    /**
+     * @brief Returns the command description.
+     *
+     * @return std::string A string with the command description, or an empty string if no description was set.
+     */
+    std::string get_description() const { return desc_; }
+
+    /**
+     * @brief Returns the command description.
+     *
+     * @return std::string A string with the command description, or an empty string if no description was set.
+     */
+    std::string get_help() const {
+        std::ostringstream oss;
+
+        oss << "Command: " << name_ << "\n";
+        if (!desc_.empty()) {
+            oss << "Description: " << desc_ << "\n\n";
+        }
+
+        oss << "Usage: <PROGRAM> " << name_;
+        if (!options_.empty()) {
+            oss << " [OPTIONS]\n\n";
+            oss << "OPTIONS:\n";
+        }
+        for (const auto& [name, option] : options_) {
+            oss << "  --" << std::left << std::setw(10) << name;
+            if (!option.option_desc_.empty())
+                oss << "" << option.option_desc_;
+            else
+                oss << "No description.";
+            oss << "\n";
+        }
+        return oss.str();
     }
 
    private:
