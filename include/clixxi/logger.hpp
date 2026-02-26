@@ -1,148 +1,109 @@
 /**
  * @file logger.hpp
- * @brief Provides a minimal logging utility for error and warning output streams.
- *
- * This header defines the Clixxi::Logger class, which provides
- * lightweight logging facilities for CLI applications.
- *
- * Logging output is written to std::cerr and supports ANSI-colored
- * prefixes for different log levels.
+ * @brief Provides a simple logging interface for Clixxi.
+ * The Logger class allows logging error and warning messages.
+ * By default, it uses ConsoleLogger to print messages to stderr with color coding.
+ * Users can set a custom logger by implementing the ILogger interface and calling Logger::set_logger().
  */
 
 #pragma once
-#include <iostream>
+#include <memory>
 #include <string>
+#include <iostream>
+#include <mutex>
 
 namespace Clixxi {
 
 /**
+ * @class ILogger
+ * @brief Interface for logging messages in Clixxi.
+ * Defines methods for logging errors and warnings.
+ * Users can implement this interface to create custom loggers.
+ */
+class ILogger {
+   public:
+    virtual ~ILogger() = default;
+    virtual void error(const std::string& msg) = 0;
+    virtual void warning(const std::string& msg) = 0;
+};
+
+/**
  * @class Logger
- * @brief Static logging facility for error and warning messages.
- *
- * Logger provides two predefined log streams:
- * - `Clixxi::error`   — for error messages
- * - `Clixxi::warning` — for warning messages
- *
- * These streams behave similarly to std::ostream and support
- * chained operator<< calls.
- *
- * Example:
- * @code
- * Clixxi::error << "File not found" << std::endl;
- * Clixxi::warning << "Invalid argument, using default" << std::endl;
- * @endcode
+ * @brief Provides static access to the current logger instance.
+ * By default, it uses ConsoleLogger which prints messages to stderr with color coding.
+ */
+class ConsoleLogger : public ILogger {
+   public:
+    /**
+    * @brief Logs an error message to stderr with color coding.
+    * The message is prefixed with "Clixxi error:" in red.
+    * @param msg The error message to log.
+    */
+    void error(const std::string& msg) override { 
+        std::cerr << "\033[1;31mClixxi error:\033[0m " << msg << std::endl; 
+    }
+
+    /**
+     * @brief Logs a warning message to stderr with color coding.
+     * The message is prefixed with "Clixxi warning:" in yellow.
+     * @param msg The warning message to log.
+     */
+    void warning(const std::string& msg) override {
+        std::cerr << "\033[1;33mClixxi warning:\033[0m " << msg << std::endl;
+    }
+};
+
+/**
+ * @class Logger
+ * @brief Logger class that manages a global logger instance.
  */
 class Logger {
    public:
     /**
-     * @class LogStream
-     * @brief Internal stream wrapper used for formatted log output.
-     *
-     * LogStream acts as a proxy around `std::cerr`.
-     * It ensures that a colored prefix is written once per message
-     * before the actual log content.
-     */
-    class LogStream {
-       public:
-        /**
-         * @enum Level
-         * @brief Defines the severity level of the log message.
-         */
-        enum class Level {
-            Error,  /**< Error level (red prefix). */
-            Warning /**< Warning level (yellow prefix). */
-        };
-
-        /**
-         * @brief Constructs a LogStream with a specified log level.
-         * @param level Log severity level.
-         */
-        LogStream(Level level) : level(level), prefix_added(false) {}
-
-        /**
-         * @brief Stream insertion operator for generic types.
-         *
-         * Writes the value to std::cerr and ensures that the
-         * corresponding prefix is added once per message.
-         *
-         * @tparam T Type of value to be streamed.
-         * @param value Value to output.
-         * @return Reference to the current LogStream instance.
-         */
-        template <typename T>
-        LogStream& operator<<(const T& value) {
-            ensurePrefix();
-            std::cerr << value;
-            return *this;
-        }
-
-        /**
-         * @brief Stream insertion operator for stream manipulators.
-         *
-         * Supports usage of manipulators such as std::endl.
-         *
-         * @param manip Function pointer to stream manipulator.
-         * @return Reference to the current LogStream instance.
-         */
-        LogStream& operator<<(std::ostream& (*manip)(std::ostream&)) {
-            ensurePrefix();
-            manip(std::cerr);
-            return *this;
-        }
-
-       private:
-        /**
-         * @brief Writes the level-specific prefix if not already written.
-         *
-         * Ensures that the prefix appears only once per log message.
-         */
-        void ensurePrefix() {
-            if (!prefix_added) {
-                std::cerr << (level == Level::Error ? error_prefix : warning_prefix);
-                prefix_added = true;
-            }
-        }
-
-        Level level;       /**< Severity level of this stream. */
-        bool prefix_added; /**< Tracks whether prefix has been printed. */
-
-        /**
-         * @brief ANSI-colored prefix for error messages.
-         */
-        static constexpr const char* error_prefix = "\033[1;31mClixxi error: \033[0m";
-        /**
-         * @brief ANSI-colored prefix for warning messages.
-         */
-        static constexpr const char* warning_prefix = "\033[1;33mClixxi warning: \033[0m";
-    };
+    * @brief Sets the global logger instance.
+    * Users can provide their own logger by implementing ILogger and calling this method.
+    * @param logger A shared pointer to the custom logger instance.
+    */
+    static void set_logger(std::shared_ptr<ILogger> logger) { 
+        instance() = std::move(logger); 
+    }
 
     /**
-     * @brief Static error log stream instance.
+     * @brief Retrieves the global logger instance.
+     * If no logger has been set, it initializes and returns a default ConsoleLogger.
+     * This method is thread-safe and ensures that only one instance of the logger is created.
+     * @return Reference to the current ILogger instance.
      */
-    inline static LogStream error{LogStream::Level::Error};
+    static ILogger& get() {
+        static std::mutex mtx;
+        std::lock_guard<std::mutex> lock(mtx);
+        if (!instance()) {
+            instance() = create_default();
+        }
+        return *instance();
+    }
+
+   private:
     /**
-     * @brief Static warning log stream instance.
+     * @brief Internal storage for the global logger instance.
+     * Uses a shared_ptr to allow for polymorphic loggers and easy replacement.
+     * The instance is initialized lazily when get() is called for the first time.
+     * @return Reference to the shared pointer holding the ILogger instance.
      */
-    inline static LogStream warning{LogStream::Level::Warning};
+    static std::shared_ptr<ILogger>& instance() {
+        static std::shared_ptr<ILogger> logger;
+        return logger;
+    }
+
+    /**
+     * @brief Creates a default logger instance.
+     * By default, this returns a ConsoleLogger that prints messages to stderr with color coding.
+     * Users can override this method to provide a different default logger if desired.
+     * @return A shared pointer to the default ILogger instance.
+     */
+    static std::shared_ptr<ILogger> create_default() { 
+        return std::make_shared<ConsoleLogger>(); 
+    }
 };
-
-/**
- * @brief Global alias for `Logger::error` stream.
- *
- * Allows usage:
- * @code
- * Clixxi::error << "Message";
- * @endcode
- */
-inline Logger::LogStream& error = Logger::error;
-/**
- * @brief Global alias for `Logger::warning` stream.
- *
- * Allows usage:
- * @code
- * Clixxi::warning << "Message";
- * @endcode
- */
-inline Logger::LogStream& warning = Logger::warning;
 
 }  // namespace Clixxi

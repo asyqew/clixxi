@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     try {
         app.run(argc, argv);
     } catch (const Clixxi::Exception& e) {
-        Clixxi::error << e.what() << std::endl;
+        Clixxi::Logger::get().error(e.what());
         return 1;
     }
     return 0;

@@ -155,7 +155,7 @@ class Context {
         } catch (const MissingRequiredOptionException&) {
             return default_value;
         } catch (const BadOptionTypeException& e) {
-            Clixxi::warning << e.what() << std::endl;
+            Clixxi::Logger::get().warning(e.what());
             return default_value;
         }
     }

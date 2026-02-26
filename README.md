@@ -195,7 +195,7 @@ It intentionally avoids complex metaprogramming and heavy abstractions.
 
 ## Versioning
 
-Current version: **0.2.0**
+Current version: **0.3.0**
 
 Semantic Versioning is used:
 
