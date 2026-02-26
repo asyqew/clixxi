@@ -51,6 +51,16 @@ install(
 
 # --- Examples ---
 # Build example applications to demonstrate how to use Clixxi
+# Determine if Clixxi is the top-level project
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+set(CLIXXI_IS_TOP_LEVEL ON)
+else()
+set(CLIXXI_IS_TOP_LEVEL OFF)
+endif()
 
-add_executable(example_hello examples/01_hello.cpp)
-target_link_libraries(example_hello PRIVATE clixxi)
+option(CLIXXI_BUILD_EXAMPLES "Build Clixxi examples" ${CLIXXI_IS_TOP_LEVEL})
+
+if(CLIXXI_BUILD_EXAMPLES)
+add_executable(clixxi_example_hello examples/01_hello.cpp)
+target_link_libraries(clixxi_example_hello PRIVATE clixxi)
+endif()
